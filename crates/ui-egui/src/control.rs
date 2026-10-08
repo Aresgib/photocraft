@@ -70,7 +70,8 @@ pub enum Outcome {
 
 /// The fields `ui.set` reads. Anything else is rejected before a field is applied, so a typo or
 /// a field the method doesn't have can't reply with success while nothing changes (#412).
-pub const UI_SET_FIELDS: [&str; 19] = [
+pub const UI_SET_FIELDS: [&str; 20] = [
+    "aiBackground",
     "tool",
     "panels",
     "dock",
@@ -207,6 +208,21 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             if let Some(field) = p.as_object().and_then(|o| o.keys().find(|k| !UI_SET_FIELDS.contains(&k.as_str()))) {
                 return err(format!("unknown field `{field}` (fields: {})", UI_SET_FIELDS.join(", ")));
             }
+            let ai_settings = if let Some(v) = p.get("aiBackground").filter(|v| !v.is_null()) {
+                match serde_json::from_value::<crate::ai_background_ui::Settings>(v.clone()) {
+                    Ok(settings)
+                        if matches!(settings.mode.as_str(), "keep" | "remove")
+                            && matches!(settings.view.as_str(), "cutout" | "overlay" | "original")
+                            && settings.radius.is_finite()
+                            && (0.5..=500.0).contains(&settings.radius) =>
+                    {
+                        Some(settings)
+                    }
+                    _ => return err("invalid aiBackground settings"),
+                }
+            } else {
+                None
+            };
             let gradient_blend = if let Some(value) = p.get("gradientBlendMode") {
                 let Some(name) = value.as_str() else { return err("gradientBlendMode must be a blend mode name") };
                 let Some(mode) = photocraft_engine::commands::blend_from_str(name).filter(|m| photocraft_color::BlendMode::LAYER_MODES.contains(m)) else {
@@ -226,6 +242,9 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     Some(t) => app.ui.tool = t,
                     None => return err(format!("unknown tool `{t}`")),
                 }
+            }
+            if let Some(settings) = ai_settings {
+                app.ui.ai_background = settings;
             }
             let gradient_before = app.ui.tool_options.clone();
             if let Some(mode) = gradient_blend {
@@ -603,6 +622,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "window": {"width": screen.width(), "height": screen.height(), "pixelsPerPoint": ctx.pixels_per_point()},
         "tool": app.ui.tool,
         "toolOptions": app.ui.tool_options,
+        "aiBackground": app.ui.ai_background,
         "magnetic": app.ui.magnetic,
         "textEdit": app.ui.text_edit,
         "layerMenu": app.ui.layer_menu,
@@ -766,6 +786,21 @@ mod tests {
             assert!(!r.to_string().contains("unknown field"), "{field}: {r}");
         }
         assert_eq!(call(&mut app, &ctx, "ui.set", Value::Null)["ok"], true);
+    }
+
+    #[test]
+    fn ai_background_options_are_addressable_and_invalid_updates_are_atomic() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        let r = call(&mut app, &ctx, "ui.set", json!({"tool":"AiBackground","aiBackground":{"radius":15,"mode":"remove","view":"overlay","download":false}}));
+        assert_eq!(r["ok"], true, "{r}");
+        assert_eq!(app.ui.tool, Tool::AiBackground);
+        assert_eq!(inspect(&app, &ctx)["aiBackground"]["radius"], 15.0);
+        let before = app.ui.ai_background.clone();
+        let r = call(&mut app, &ctx, "ui.set", json!({"tool":"Move","aiBackground":{"radius":-1}}));
+        assert_eq!(r["ok"], false);
+        assert_eq!(app.ui.tool, Tool::AiBackground);
+        assert_eq!(app.ui.ai_background, before);
     }
 
     #[test]

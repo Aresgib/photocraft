@@ -16,6 +16,7 @@ use crate::{PhotocraftApp, icons, widgets};
 /// shows the group's last-used tool.
 const TOOL_SECTIONS: &[&[&[Tool]]] = &[
     &[&[Tool::Move]],
+    &[&[Tool::AiBackground]],
     &[
         &[Tool::RectMarquee, Tool::EllipseMarquee],
         &[Tool::Lasso, Tool::PolygonLasso, Tool::MagneticLasso],
@@ -483,6 +484,10 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     return;
                 }
                 let tool = app.ui.tool;
+                if tool == Tool::AiBackground {
+                    crate::ai_background_ui::options_bar(app, ui);
+                    return;
+                }
                 // Brush edits here go through `tools.setBrush`, one journal entry per gesture (Rule 1).
                 if (tool.is_brushlike() && !matches!(tool, Tool::Brush | Tool::Pencil | Tool::MixerBrush | Tool::Eraser)) || tool == Tool::QuickSelection {
                     let before = app.session.tools.brush.clone();

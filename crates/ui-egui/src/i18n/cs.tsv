@@ -2133,3 +2133,17 @@ cameraRaw	Color	Barvy
 	% of all commits	% všech commitů
 	Lines +/−	Řádky +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: PR: {prs}, commity: {commits}, řádky +{added} / −{deleted} (Δ {delta}), binární soubory +{binAdded} / −{binDeleted}, {first} – {last}
+
+# AI background removal
+	AI Background Removal Tool	Nástroj odstranění pozadí pomocí AI
+	AI Background Removal	Odstranění pozadí pomocí AI
+	Generate preview	Vytvořit náhled
+	BiRefNet runs locally. Your image stays on this computer.	BiRefNet běží místně. Obrázek zůstává v tomto počítači.
+	Download model once (about 224 MB)	Jednou stáhnout model (asi 224 MB)
+	The image changed. Generate a new preview.	Obrázek se změnil. Vytvořte nový náhled.
+	Generate a preview, correct missing parts, then apply the mask.	Vytvořte náhled, opravte chybějící části a použijte masku.
+	Cutout	Výřez
+	Keep	Zachovat
+	Brush radius	Poloměr štětce
+	Paint on the preview to keep or remove areas.	Malováním v náhledu zachováte nebo odstraníte oblasti.
+	Apply mask	Použít masku

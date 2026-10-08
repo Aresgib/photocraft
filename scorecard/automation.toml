@@ -56,9 +56,9 @@ note = "runtime.rs:15 ABI_VERSION = 1; manifest.rs:18 Kind::Filter only"
 [[item]]
 id = "AUTO-219-7"
 target = "Local ONNX models behind a flag, managed in Preferences; subject select, background removal"
-status = "missing"
+status = "partial"
 issue = 219
-note = "No ONNX runtime dependency"
+note = "ai-background feature: local pinned/hash-verified BiRefNet lite CPU preview, Keep/Remove corrections and one-step mask apply via layer.aiBackground.*. Preferences management, AI subject selection and GPU providers remain open."
 
 [[item]]
 id = "AUTO-219-8"

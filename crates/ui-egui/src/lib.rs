@@ -19,6 +19,7 @@ pub mod adjust_dialog;
 pub mod adjust_editors;
 pub mod adjust_preview;
 pub mod adjust_ui;
+pub mod ai_background_ui;
 pub mod analysis_ui;
 pub mod artboard_ui;
 mod brand;
@@ -379,6 +380,7 @@ pub struct PhotocraftApp {
     pub(crate) filter_preview: Option<filter_dialog::FilterPreview>,
     /// Select › Color Range dialog preview (proxy document + mask / image textures).
     pub(crate) color_range: Option<color_range_ui::Preview>,
+    pub(crate) ai_background_texture: Option<ai_background_ui::PreviewTexture>,
     /// Image › Adjustments dialog preview through a temporary clipped adjustment layer.
     pub(crate) adjust_preview: Option<adjust_preview::AdjustPreview>,
     /// Synthetic input events queued by automation (`ui.click`, `ui.key`, …), injected next frame.
@@ -504,6 +506,7 @@ impl PhotocraftApp {
             outline_cache: None,
             filter_preview: None,
             color_range: None,
+            ai_background_texture: None,
             adjust_preview: None,
             synthetic: Vec::new(),
             automation_input: false,
@@ -1085,6 +1088,7 @@ impl eframe::App for PhotocraftApp {
         workspace_ui::windows(self, &ctx);
         palette::show(self, &ctx);
         dialogs::show(self, &ctx);
+        ai_background_ui::show(self, &ctx);
         jobs_ui::dialog(self, &ctx);
         discard_ui::show(self, &ctx);
         tiff_options_ui::show(self, &ctx);

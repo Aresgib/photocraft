@@ -100,6 +100,7 @@ pub enum Tool {
     Sponge,
     QuickSelection,
     ObjectSelection,
+    AiBackground,
     Pen,
     PathSelection,
     DirectSelection,
@@ -114,7 +115,7 @@ pub enum Tool {
 }
 
 impl Tool {
-    pub const ALL: [Tool; 49] = [
+    pub const ALL: [Tool; 50] = [
         Tool::Move,
         Tool::RectMarquee,
         Tool::EllipseMarquee,
@@ -153,6 +154,7 @@ impl Tool {
         Tool::Sponge,
         Tool::QuickSelection,
         Tool::ObjectSelection,
+        Tool::AiBackground,
         Tool::Pen,
         Tool::PathSelection,
         Tool::DirectSelection,
@@ -208,6 +210,7 @@ impl Tool {
             Tool::Sponge => "Sponge Tool",
             Tool::QuickSelection => "Quick Selection Tool",
             Tool::ObjectSelection => "Object Selection Tool",
+            Tool::AiBackground => "AI Background Removal Tool",
             Tool::Pen => "Pen Tool",
             Tool::PathSelection => "Path Selection Tool",
             Tool::DirectSelection => "Direct Selection Tool",
@@ -265,6 +268,7 @@ impl Tool {
             Tool::Blur | Tool::Sharpen | Tool::Smudge => '\0',
             Tool::Dodge | Tool::Burn | Tool::Sponge => 'O',
             Tool::QuickSelection | Tool::ObjectSelection => 'W',
+            Tool::AiBackground => '\0',
             Tool::Pen => 'P',
             Tool::PathSelection | Tool::DirectSelection => 'A',
             Tool::Rectangle | Tool::EllipseShape | Tool::Triangle | Tool::Polygon | Tool::Line | Tool::CustomShape => 'U',
@@ -702,6 +706,8 @@ pub struct ColorPanelState {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiState {
     pub tool: Tool,
+    #[serde(default)]
+    pub ai_background: crate::ai_background_ui::Settings,
     /// Recently opened file paths, most-recent first (File › Open Recent). Capped; de-duplicated.
     #[serde(default)]
     pub recent_files: Vec<String>,
@@ -845,6 +851,7 @@ impl Default for UiState {
     fn default() -> Self {
         Self {
             tool: Tool::Brush,
+            ai_background: Default::default(),
             recent_files: Vec::new(),
             text_edit: None,
             transform: None,

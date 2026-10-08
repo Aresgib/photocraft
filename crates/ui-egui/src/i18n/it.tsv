@@ -2206,3 +2206,17 @@ cameraRaw	Amount	Quantità
 	Lines +/−	Righe +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PR, {commits} commit, +{added} / −{deleted} righe (Δ {delta}), +{binAdded} / −{binDeleted} risorse binarie, {first} – {last}
 	Convert to Layers	Converti in livelli
+
+# AI background removal
+	AI Background Removal Tool	Strumento rimozione sfondo con IA
+	AI Background Removal	Rimuovi sfondo con IA
+	Generate preview	Genera anteprima
+	BiRefNet runs locally. Your image stays on this computer.	BiRefNet viene eseguito localmente. L’immagine rimane su questo computer.
+	Download model once (about 224 MB)	Scarica il modello una volta (circa 224 MB)
+	The image changed. Generate a new preview.	L’immagine è cambiata. Genera una nuova anteprima.
+	Generate a preview, correct missing parts, then apply the mask.	Genera un’anteprima, correggi le parti mancanti e applica la maschera.
+	Cutout	Ritaglio
+	Keep	Mantieni
+	Brush radius	Raggio del pennello
+	Paint on the preview to keep or remove areas.	Dipingi sull’anteprima per mantenere o rimuovere aree.
+	Apply mask	Applica maschera

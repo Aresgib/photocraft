@@ -2141,3 +2141,17 @@ cameraRaw	Blending	混合
 	% of all commits	占全部提交的 %
 	Lines +/−	行数 +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}：{prs} 个 PR，{commits} 次提交，行 +{added} / −{deleted}（Δ {delta}），二进制文件 +{binAdded} / −{binDeleted}，{first} – {last}
+
+# AI background removal
+	AI Background Removal Tool	AI 背景移除工具
+	AI Background Removal	AI 移除背景
+	Generate preview	生成预览
+	BiRefNet runs locally. Your image stays on this computer.	BiRefNet 在本地运行。图像保留在此计算机上。
+	Download model once (about 224 MB)	下载一次模型（约 224 MB）
+	The image changed. Generate a new preview.	图像已更改。请生成新的预览。
+	Generate a preview, correct missing parts, then apply the mask.	生成预览，修正缺失部分，然后应用蒙版。
+	Cutout	抠图
+	Keep	保留
+	Brush radius	画笔半径
+	Paint on the preview to keep or remove areas.	在预览上涂画以保留或移除区域。
+	Apply mask	应用蒙版

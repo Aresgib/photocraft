@@ -32,6 +32,11 @@ The transport is `apps/photocraft/src/control_server.rs`, and the handlers are i
 
 ## Methods
 
+AI cutout is an independent toolbar tool: `ui.set {tool:"AiBackground", aiBackground:{mode:"keep",
+radius:20, view:"cutout", download:false}}`; `ui.inspect.aiBackground` reports these settings.
+Its engine workflow is `layer.aiBackground.preview`, `.info`, `.correct`, `.apply`, `.cancel`.
+See [AI Background Removal](ai-background-removal.md) for the full parameter contract.
+
 - `engine.execute {command, params}`: run any engine or UI command by id. Engine commands run directly with their default params and never open a dialog. Use `ui.menu.invoke` for menu-click behaviour, which opens a command's dialog when no params are given. `params` must be a JSON object (omit it or pass `null` for none); an array, string, number or boolean is an error naming the command, in every transport (control channel, `serve`, MCP and the CLI)
 - `engine.commands`: list commands with enablement
 - `ui.inspect`: full UI state (tool, panels, views, dialogs, windows, window size). The menu tree is not included; use `ui.menu.list`. `view` holds the View/Window/Type preferences: `screen_mode`, `extras`, `show` and `snap_to` flags, `flip_horizontal`, `arrange` (Window › Arrange layout), pixel aspect, font preview size, language options. `perf.timings.gpuInfo` holds the graphics adapter, backend, driver, the backend chosen at launch and why, the canvas renderer (`gpu`/`cpu`) and, after a device loss, `lost` (`help.systemInfo` returns the same as `info`)

@@ -8,10 +8,13 @@ license.workspace = true
 workspace = true
 
 [features]
+default = ["ai-background"]
+ai-background = ["photocraft-ml/onnx"]
 # Real-file corpus tests (opt-in; `cargo xtask test-corpus`). Fail when the corpus is missing.
 corpus = []
 
 [dependencies]
+photocraft-ml = { path = "../ml" }
 photocraft-geom = { workspace = true }
 photocraft-color = { workspace = true }
 photocraft-cms = { workspace = true }

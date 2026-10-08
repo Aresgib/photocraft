@@ -97,6 +97,7 @@ pub fn tool_icon(t: Tool) -> &'static str {
         Tool::Sponge => "cloud",
         Tool::QuickSelection => "circle-dashed",
         Tool::ObjectSelection => "square-dashed-mouse-pointer",
+        Tool::AiBackground => "sparkles",
         Tool::Pen => "pen-tool",
         Tool::PathSelection => "mouse-pointer-2",
         Tool::DirectSelection => "direct-select",

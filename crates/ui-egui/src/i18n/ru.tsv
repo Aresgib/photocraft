@@ -2407,3 +2407,17 @@ cameraRaw	Roughness	Неровность
 	% of all commits	% от всех коммитов
 	Lines +/−	Строки +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: PR: {prs}, коммиты: {commits}, строки +{added} / −{deleted} (Δ {delta}), двоичные файлы +{binAdded} / −{binDeleted}, {first} – {last}
+
+# AI background removal
+	AI Background Removal Tool	Инструмент удаления фона с ИИ
+	AI Background Removal	Удаление фона с ИИ
+	Generate preview	Создать предпросмотр
+	BiRefNet runs locally. Your image stays on this computer.	BiRefNet работает локально. Изображение остаётся на этом компьютере.
+	Download model once (about 224 MB)	Скачать модель один раз (около 224 МБ)
+	The image changed. Generate a new preview.	Изображение изменилось. Создайте новый предпросмотр.
+	Generate a preview, correct missing parts, then apply the mask.	Создайте предпросмотр, восстановите пропущенные части и примените маску.
+	Cutout	Вырезка
+	Keep	Сохранить
+	Brush radius	Радиус кисти
+	Paint on the preview to keep or remove areas.	Рисуйте на предпросмотре, чтобы сохранить или удалить области.
+	Apply mask	Применить маску

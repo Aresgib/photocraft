@@ -2551,3 +2551,17 @@ cameraRaw	Blending	Pembauran
 	% of all commits	% dari semua commit
 	Lines +/−	Baris +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PR, {commits} commit, +{added} / −{deleted} baris (Δ {delta}), +{binAdded} / −{binDeleted} berkas biner, {first} – {last}
+
+# AI background removal
+	AI Background Removal Tool	Alat hapus latar dengan AI
+	AI Background Removal	Hapus latar dengan AI
+	Generate preview	Buat pratinjau
+	BiRefNet runs locally. Your image stays on this computer.	BiRefNet berjalan lokal. Gambar tetap di komputer ini.
+	Download model once (about 224 MB)	Unduh model sekali (sekitar 224 MB)
+	The image changed. Generate a new preview.	Gambar berubah. Buat pratinjau baru.
+	Generate a preview, correct missing parts, then apply the mask.	Buat pratinjau, koreksi bagian yang hilang, lalu terapkan mask.
+	Cutout	Potongan
+	Keep	Pertahankan
+	Brush radius	Radius kuas
+	Paint on the preview to keep or remove areas.	Lukis pada pratinjau untuk mempertahankan atau menghapus area.
+	Apply mask	Terapkan mask

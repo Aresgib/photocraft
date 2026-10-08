@@ -88,6 +88,19 @@ Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 Copy-Item (Join-Path $Bin 'photocraft.exe'), (Join-Path $Bin 'photocraft-cli.exe') $Stage
 
+# ort's Windows prebuilt links DirectML even when inference selects CPU. Preserve Microsoft's
+# signature and keep its redistribution notices beside the binary (weights download separately).
+$AiRuntime = '0'
+$AiRuntimeFiles = @('DirectML.dll', 'LICENSE-DirectML.txt', 'NOTICE-DirectML.txt', 'LICENSE-ONNXRuntime.txt', 'NOTICE-ONNXRuntime.txt')
+if (Test-Path -LiteralPath (Join-Path $Bin 'DirectML.dll')) {
+  if ((Get-PeHeader (Join-Path $Bin 'DirectML.dll')).Machine -ne $Machine) { throw 'DirectML.dll architecture does not match the package' }
+  Copy-Item -LiteralPath (Join-Path $Bin 'DirectML.dll') -Destination $Stage
+  foreach ($notice in $AiRuntimeFiles | Where-Object { $_ -ne 'DirectML.dll' }) {
+    Copy-Item -LiteralPath (Join-Path $Root "crates\ml\licenses\$notice") -Destination $Stage
+  }
+  $AiRuntime = '1'
+}
+
 & (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'photocraft.exe') (Join-Path $Stage 'photocraft-cli.exe')
 
 # ---- MSI ---------------------------------------------------------------------------------------
@@ -95,7 +108,7 @@ $Msi = Join-Path $Dist "photocraft-$Version-windows-$Arch.msi"
 & (Join-Path $PSScriptRoot 'check-icons.ps1')
 Invoke-Native 'wix build' {
   wix build (Join-Path $PSScriptRoot 'photocraft.wxs') -arch $Arch `
-    -d "Version=$MsiVersion" -d "BinDir=$Stage" -d "IconPath=$(Join-Path $Root 'assets\app-icon\photocraft.ico')" `
+    -d "Version=$MsiVersion" -d "BinDir=$Stage" -d "AiRuntime=$AiRuntime" -d "IconPath=$(Join-Path $Root 'assets\app-icon\photocraft.ico')" `
     -o $Msi
 }
 Invoke-Native 'MSI shortcut icon validation (ICE50)' {
@@ -110,6 +123,9 @@ $Portable = Join-Path $TargetDir "windows-package\photocraft-$Version-windows-$A
 Remove-Item -Recurse -Force $Portable -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Portable | Out-Null
 Copy-Item (Join-Path $Stage '*.exe') $Portable
+if ($AiRuntime -eq '1') {
+  foreach ($runtimeFile in $AiRuntimeFiles) { Copy-Item -LiteralPath (Join-Path $Stage $runtimeFile) -Destination $Portable }
+}
 foreach ($f in 'README.md', 'LICENSE', 'LICENSE-MIT', 'LICENSE-APACHE') {
   $p = Join-Path $Root $f
   if (Test-Path $p) { Copy-Item $p $Portable }

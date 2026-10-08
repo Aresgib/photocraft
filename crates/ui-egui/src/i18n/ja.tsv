@@ -2116,3 +2116,17 @@ cameraRaw	Color	カラー
 	% of all commits	全コミットに占める割合 (%)
 	Lines +/−	行数 +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: PR {prs} 件、コミット {commits} 件、行 +{added} / −{deleted} (Δ {delta})、バイナリ +{binAdded} / −{binDeleted}、{first} – {last}
+
+# AI background removal
+	AI Background Removal Tool	AI 背景除去ツール
+	AI Background Removal	AI 背景除去
+	Generate preview	プレビューを生成
+	BiRefNet runs locally. Your image stays on this computer.	BiRefNet はローカルで実行されます。画像はこのコンピューターに保存されます。
+	Download model once (about 224 MB)	モデルを一度ダウンロード（約 224 MB）
+	The image changed. Generate a new preview.	画像が変更されました。新しいプレビューを生成してください。
+	Generate a preview, correct missing parts, then apply the mask.	プレビューを生成し、欠けた部分を修正してマスクを適用します。
+	Cutout	切り抜き
+	Keep	保持
+	Brush radius	ブラシ半径
+	Paint on the preview to keep or remove areas.	プレビューに描画して領域を保持または除去します。
+	Apply mask	マスクを適用

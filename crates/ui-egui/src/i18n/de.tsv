@@ -2172,3 +2172,17 @@
 	% of all commits	% aller Commits
 	Lines +/−	Zeilen +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PRs, {commits} Commits, +{added} / −{deleted} Zeilen (Δ {delta}), +{binAdded} / −{binDeleted} Binärdateien, {first} – {last}
+
+# AI background removal
+	AI Background Removal Tool	KI-Hintergrundentfernung
+	AI Background Removal	Hintergrund mit KI entfernen
+	Generate preview	Vorschau erzeugen
+	BiRefNet runs locally. Your image stays on this computer.	BiRefNet läuft lokal. Ihr Bild bleibt auf diesem Computer.
+	Download model once (about 224 MB)	Modell einmal herunterladen (ca. 224 MB)
+	The image changed. Generate a new preview.	Das Bild wurde geändert. Erzeugen Sie eine neue Vorschau.
+	Generate a preview, correct missing parts, then apply the mask.	Erzeugen Sie eine Vorschau, ergänzen Sie fehlende Teile und wenden Sie die Maske an.
+	Cutout	Freistellung
+	Keep	Behalten
+	Brush radius	Pinselradius
+	Paint on the preview to keep or remove areas.	Malen Sie in der Vorschau, um Bereiche zu behalten oder zu entfernen.
+	Apply mask	Maske anwenden

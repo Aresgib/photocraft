@@ -10,6 +10,7 @@
 pub mod actions_cmds;
 pub mod adjust_cmds;
 pub mod adjust_params;
+pub mod ai_background_cmds;
 pub mod align_cmds;
 pub mod analysis_cmds;
 pub mod artboard_cmds;
@@ -261,6 +262,8 @@ impl Default for ToolState {
 
 #[derive(Default)]
 pub struct Session {
+    /// An uncommitted AI cutout; never serialized into a document.
+    pub ai_background: Option<ai_background_cmds::Preview>,
     docs: Vec<DocState>,
     active: Option<usize>,
     pub tools: ToolState,

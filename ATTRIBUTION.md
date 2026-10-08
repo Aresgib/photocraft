@@ -43,7 +43,26 @@ The other built-in ICC profiles and the generated LUT looks are produced by code
 (`crates/cms/src/builtin.rs`, `crates/cms/src/lutfile.rs`) and dedicated to the public domain
 (CC0-1.0); they are not separate files.
 
+## Optional local AI model (downloaded at runtime, not committed)
+
+| Asset | Title | Author | Source | License |
+|---|---|---|---|---|
+| Model cache `birefnet-lite-de15b22.onnx` | BiRefNet lite FP32 ONNX, pinned export `de15b22`, SHA-256 `5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333` | Peng Zheng and BiRefNet authors; ONNX export by Xenova / ONNX Community | <https://huggingface.co/onnx-community/BiRefNet_lite-ONNX> and <https://github.com/ZhengPeng7/BiRefNet> | MIT, [`LICENSE-BiRefNet.txt`](assets/models/LICENSE-BiRefNet.txt), also written beside the cached model |
+
 ## Documentation and README
+
+### Optional native inference dependency notices
+
+The `ai-background` build links ONNX Runtime (MIT). Its Windows prebuilt requires Microsoft's
+DirectML redistributable even for CPU execution; packaging includes that dependency under its
+own Windows redistribution terms. Neither native binary is committed to this repository.
+
+| Notice files | Dependency | Author | Source | Terms |
+|---|---|---|---|---|
+| `crates/ml/licenses/LICENSE-ONNXRuntime.txt`, `NOTICE-ONNXRuntime.txt` | ONNX Runtime 1.22 | Microsoft and listed third-party authors | <https://github.com/microsoft/onnxruntime/tree/v1.22.0> | MIT and the reproduced third-party notices |
+| `crates/ml/licenses/LICENSE-DirectML.txt`, `NOTICE-DirectML.txt` | DirectML 1.15.4 redistributable | Microsoft and listed third-party authors | <https://www.nuget.org/packages/Microsoft.AI.DirectML/1.15.4> | Microsoft Software License Terms (Windows redistribution), with third-party notices |
+
+### Documentation artwork
 
 | Path | Title | Author | Source | License |
 |---|---|---|---|---|

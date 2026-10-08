@@ -402,6 +402,12 @@ psd/src/
 | Vector (`vector`) | shapes, bezier paths, pen tool geometry, strokes (dash, align, caps), boolean ops → coverage via vello_cpu | — |
 | ML (`ml`) | `InferenceBackend` trait; tasks: `segment_point/box` (SAM2), `matte_subject` (background removal), `depth`, `sky`; model registry with SHA-256 verification and on-demand download | backend-dependent |
 
+As of 2026-10-08, `photocraft-ml` implements the first `matte_subject` backend: pinned BiRefNet
+lite ONNX on native CPU behind `ai-background`. Its independent toolbar tool prepares/corrects
+a preview without editing the document, then installs an F32 layer mask through engine history.
+Existing classical selection and background removal remain available. Other tasks, Preferences
+model management and GPU execution providers in this table are still planned.
+
 **Rules for every algorithm:**
 - **Signature:** a pure function `fn(input: &SurfaceView, params: &P, region: Rect, cancel: &CancelToken) -> Surface`.
 - **Params:** `P: Pod + JsonSchema + Serialize + Deserialize`.

@@ -9,6 +9,9 @@
   taking over the user's default app for them).
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <?ifndef AiRuntime ?>
+  <?define AiRuntime=0 ?>
+  <?endif ?>
   <Package
       Name="PhotoCraft"
       Manufacturer="Learning Machines LLC"
@@ -105,6 +108,13 @@
       <Component Id="PhotocraftCli">
         <File Id="PhotocraftCliExe" Source="$(var.BinDir)\photocraft-cli.exe" KeyPath="yes" />
       </Component>
+      <?if $(var.AiRuntime) = 1 ?>
+      <Component Id="PhotocraftDirectML"><File Source="$(var.BinDir)\DirectML.dll" KeyPath="yes" /></Component>
+      <Component Id="PhotocraftDirectMLLicense"><File Source="$(var.BinDir)\LICENSE-DirectML.txt" KeyPath="yes" /></Component>
+      <Component Id="PhotocraftDirectMLNotice"><File Source="$(var.BinDir)\NOTICE-DirectML.txt" KeyPath="yes" /></Component>
+      <Component Id="PhotocraftOrtLicense"><File Source="$(var.BinDir)\LICENSE-ONNXRuntime.txt" KeyPath="yes" /></Component>
+      <Component Id="PhotocraftOrtNotice"><File Source="$(var.BinDir)\NOTICE-ONNXRuntime.txt" KeyPath="yes" /></Component>
+      <?endif ?>
     </ComponentGroup>
   </Fragment>
 </Wix>

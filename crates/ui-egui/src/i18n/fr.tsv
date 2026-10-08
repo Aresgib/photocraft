@@ -2564,3 +2564,17 @@ cameraRaw	Blending	Fusion
 	% of all commits	% de tous les commits
 	Lines +/−	Lignes +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login} : {prs} PR, {commits} commits, +{added} / −{deleted} lignes (Δ {delta}), +{binAdded} / −{binDeleted} fichiers binaires, {first} – {last}
+
+# AI background removal
+	AI Background Removal Tool	Outil de suppression du fond par IA
+	AI Background Removal	Suppression du fond par IA
+	Generate preview	Générer un aperçu
+	BiRefNet runs locally. Your image stays on this computer.	BiRefNet fonctionne localement. Votre image reste sur cet ordinateur.
+	Download model once (about 224 MB)	Télécharger le modèle une fois (environ 224 Mo)
+	The image changed. Generate a new preview.	L’image a changé. Générez un nouvel aperçu.
+	Generate a preview, correct missing parts, then apply the mask.	Générez un aperçu, corrigez les parties manquantes, puis appliquez le masque.
+	Cutout	Détourage
+	Keep	Conserver
+	Brush radius	Rayon du pinceau
+	Paint on the preview to keep or remove areas.	Peignez sur l’aperçu pour conserver ou supprimer des zones.
+	Apply mask	Appliquer le masque
