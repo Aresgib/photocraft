@@ -7,7 +7,7 @@ use photocraft_cms::{Transform, builtin::Builtin};
 use photocraft_color::{PixelFormat, SampleType};
 use photocraft_doc::{Document, LayerContent, LayerId, LayerMask};
 use photocraft_geom::Rect;
-use photocraft_ml::{MODEL_SIDE, Matte, ModelInput, Progress};
+use photocraft_ml::{Backend, InferenceOptions, MODEL_SIDE, Matte, ModelInput, Progress};
 use photocraft_raster::Surface;
 use serde_json::{Value, json};
 
@@ -21,6 +21,14 @@ pub const CANCEL: &str = "layer.aiBackground.cancel";
 pub const INFO: &str = "layer.aiBackground.info";
 static NEXT_VERSION: AtomicU64 = AtomicU64::new(1);
 
+pub fn gpu_supported() -> bool {
+    photocraft_ml::directml_supported()
+}
+
+pub fn gpu_adapters() -> &'static [photocraft_ml::GpuAdapter] {
+    photocraft_ml::gpu_adapters()
+}
+
 fn next_version() -> Result<u64> {
     NEXT_VERSION.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1)).map_err(|_| error("AI preview version limit reached"))
 }
@@ -33,6 +41,24 @@ pub struct Preview {
     /// The color-managed source used by inference also serves as a bounded UI thumbnail.
     pub input: ModelInput,
     pub version: u64,
+    pub provider: Backend,
+    pub fallback_reason: Option<String>,
+    pub device_id: Option<u32>,
+}
+
+fn inference_options(s: &Session, params: &Value) -> Result<InferenceOptions> {
+    let backend = match params.get("backend") {
+        None => s.prefs().performance.ai_backend,
+        Some(Value::String(value)) => Backend::parse(value).ok_or_else(|| error("backend must be auto, cpu or directml"))?,
+        _ => return Err(error("backend must be auto, cpu or directml")),
+    };
+    let device_id = match params.get("deviceId") {
+        None => s.prefs().performance.ai_device_id,
+        Some(value) => value.as_u64().and_then(|n| u32::try_from(n).ok()).ok_or_else(|| error("deviceId must be an integer within 0..31"))?,
+    };
+    let options = InferenceOptions { backend, device_id };
+    options.validate().map_err(ml_error)?;
+    Ok(options)
 }
 
 fn error(s: impl Into<String>) -> EngineError {
@@ -174,6 +200,7 @@ fn prepare(s: &mut Session, params: &Value) -> Result<Value> {
     if !params.is_object() {
         return Err(error("AI preview params must be an object"));
     }
+    let options = inference_options(s, params)?;
     let download = match params.get("download") {
         None => false,
         Some(Value::Bool(b)) => *b,
@@ -198,13 +225,23 @@ fn prepare(s: &mut Session, params: &Value) -> Result<Value> {
         move |ctx| {
             ctx.progress(0.01, "Preparing color-managed image");
             let input = sample_input(&doc, id, MODEL_SIDE, ctx)?;
-            let matte = photocraft_ml::infer(&input, download, ctx).map_err(ml_error)?;
+            let output = photocraft_ml::infer_with_options(&input, download, options, ctx).map_err(ml_error)?;
             ctx.progress(0.9, "Preparing editable mask");
-            let mask = mask_from_matte(&matte, doc.bounds(), ctx)?;
-            Ok(Preview { document: doc, layer: id, revision, mask, input, version })
+            let mask = mask_from_matte(&output.matte, doc.bounds(), ctx)?;
+            Ok(Preview {
+                document: doc,
+                layer: id,
+                revision,
+                mask,
+                input,
+                version,
+                provider: output.provider,
+                fallback_reason: output.fallback_reason,
+                device_id: output.device_id,
+            })
         },
         |s, preview| {
-            let result = json!({"preview":true,"layer":preview.layer.0,"model":"BiRefNet","provider":"CPU"});
+            let result = json!({"preview":true,"layer":preview.layer.0,"model":"BiRefNet","provider":preview.provider.label(),"deviceId":preview.device_id,"fallbackReason":preview.fallback_reason});
             s.ai_background = Some(preview);
             Ok(result)
         },
@@ -307,13 +344,17 @@ pub fn specs() -> Vec<CommandSpec> {
             label: "Inspect AI Background Preview",
             menu: &[],
             shortcut: None,
-            params: "{} → {supported,ready,preview:{layer,width,height,version,model,provider}?}",
+            params: "{} → {supported,ready,backend,deviceId,providers,preview:{layer,width,height,version,model,provider,fallbackReason}?}",
             enabled: always,
             run: |s, _| {
                 Ok(json!({
                     "supported":photocraft_ml::supported(),
                     "ready":current_preview(s).is_ok(),
-                    "preview":s.ai_background.as_ref().map(|p| json!({"layer":p.layer.0,"width":p.document.size.width,"height":p.document.size.height,"version":p.version,"model":"BiRefNet","provider":"CPU"}))
+                    "backend":s.prefs().performance.ai_backend.name(),
+                    "deviceId":s.prefs().performance.ai_device_id,
+                    "adapters":gpu_adapters(),
+                    "providers":if photocraft_ml::directml_supported() { vec!["cpu", "directml"] } else { vec!["cpu"] },
+                    "preview":s.ai_background.as_ref().map(|p| json!({"layer":p.layer.0,"width":p.document.size.width,"height":p.document.size.height,"version":p.version,"model":"BiRefNet","provider":p.provider.label(),"deviceId":p.device_id,"fallbackReason":p.fallback_reason}))
                 }))
             },
             journal: false,
@@ -323,7 +364,7 @@ pub fn specs() -> Vec<CommandSpec> {
             label: "AI Background Removal",
             menu: &[],
             shortcut: None,
-            params: r##"{"layer":id?,"download":bool=false} → {preview,layer,model,provider}; prepares an editable mask without changing the document"##,
+            params: r##"{"layer":id?,"download":bool=false,"backend":"auto|cpu|directml"?,"deviceId":0..31?} → {preview,layer,model,provider,fallbackReason}; omitted provider uses performance.aiBackend/aiDeviceId; prepares an editable mask without changing the document"##,
             enabled,
             run: prepare,
             journal: false,
@@ -366,6 +407,29 @@ mod tests {
     use super::*;
     use crate::jobs::JobCtx;
 
+    #[test]
+    fn provider_params_override_preferences_and_reject_invalid_values_without_editing() {
+        let mut s = Session::new();
+        s.execute("prefs.set", json!({"values":{"performance.aiBackend":"cpu","performance.aiDeviceId":1}})).unwrap();
+        assert_eq!(inference_options(&s, &json!({})).unwrap(), InferenceOptions { backend: Backend::Cpu, device_id: 1 });
+        assert_eq!(inference_options(&s, &json!({"backend":"auto","deviceId":0})).unwrap(), InferenceOptions::default());
+        for params in [
+            json!({"backend":"cuda"}),
+            json!({"backend":false}),
+            json!({"deviceId":32}),
+            json!({"deviceId":-1}),
+            json!({"deviceId":1.5}),
+            json!({"deviceId":u64::MAX}),
+        ] {
+            assert!(s.execute(PREPARE, params).is_err());
+        }
+        let info = s.execute(INFO, json!({})).unwrap();
+        assert_eq!(info["backend"], "cpu");
+        assert_eq!(info["deviceId"], 1);
+        assert!(s.active().is_none());
+        assert!(s.ai_background.is_none());
+    }
+
     fn fixture(depth: u32) -> Session {
         let mut s = Session::new();
         s.execute("file.new", json!({"width":12,"height":10,"depth":depth})).unwrap();
@@ -379,6 +443,9 @@ mod tests {
             mask,
             input: ModelInput { rgba: vec![[0.8, 0.2, 0.1, 1.0]; MODEL_SIDE * MODEL_SIDE] },
             version: 0,
+            provider: Backend::Cpu,
+            fallback_reason: None,
+            device_id: None,
         });
         s
     }

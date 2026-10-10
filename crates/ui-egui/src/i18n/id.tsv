@@ -2565,3 +2565,16 @@ cameraRaw	Blending	Pembauran
 	Brush radius	Radius kuas
 	Paint on the preview to keep or remove areas.	Lukis pada pratinjau untuk mempertahankan atau menghapus area.
 	Apply mask	Terapkan mask
+
+# AI inference device
+	AI processing	Pemrosesan AI
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	Mode otomatis mencoba akselerasi GPU dan menggunakan CPU jika diperlukan.
+	AI GPU settings	Pengaturan GPU untuk AI
+	GPU adapter index	Indeks adaptor GPU
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 menggunakan GPU default. Pilih indeks adaptor DXGI lain untuk GPU kedua.
+	Applies to the next preview. No restart required.	Berlaku untuk pratinjau berikutnya. Tidak perlu memulai ulang.
+	Inference device	Perangkat inferensi
+	GPU unavailable; this preview used CPU.	GPU tidak tersedia; pratinjau ini menggunakan CPU.
+
+	CPU	CPU

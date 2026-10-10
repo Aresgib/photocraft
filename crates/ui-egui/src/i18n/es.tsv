@@ -2206,6 +2206,15 @@ cameraRaw	Amount	Cantidad
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PR, {commits} commits, +{added} / −{deleted} líneas (Δ {delta}), +{binAdded} / −{binDeleted} archivos binarios, {first} – {last}
 
 # AI background removal
+	AI processing	Procesamiento de IA
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	Automático intenta usar la GPU y recurre a CPU si es necesario.
+	AI GPU settings	Configuración de GPU para IA
+	GPU adapter index	Índice del adaptador GPU
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 usa la GPU predeterminada. Elige otro índice de adaptador DXGI para una segunda GPU.
+	Applies to the next preview. No restart required.	Se aplica a la siguiente previsualización. No requiere reiniciar.
+	Inference device	Dispositivo de inferencia
+	GPU unavailable; this preview used CPU.	GPU no disponible; esta previsualización usó CPU.
 	AI Background Removal Tool	Herramienta Quitar fondo con IA
 	AI Background Removal	Quitar fondo con IA
 	Generate preview	Generar previsualización
@@ -2218,3 +2227,5 @@ cameraRaw	Amount	Cantidad
 	Brush radius	Radio del pincel
 	Paint on the preview to keep or remove areas.	Pinta sobre la previsualización para conservar o quitar áreas.
 	Apply mask	Aplicar máscara
+
+	CPU	CPU

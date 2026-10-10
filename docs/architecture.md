@@ -403,10 +403,16 @@ psd/src/
 | ML (`ml`) | `InferenceBackend` trait; tasks: `segment_point/box` (SAM2), `matte_subject` (background removal), `depth`, `sky`; model registry with SHA-256 verification and on-demand download | backend-dependent |
 
 As of 2026-10-08, `photocraft-ml` implements the first `matte_subject` backend: pinned BiRefNet
-lite ONNX on native CPU behind `ai-background`. Its independent toolbar tool prepares/corrects
+lite ONNX behind `ai-background` (CPU and, since 2026-10-10, Windows DirectML). Its independent toolbar tool prepares/corrects
 a preview without editing the document, then installs an F32 layer mask through engine history.
 Existing classical selection and background removal remain available. Other tasks, Preferences
-model management and GPU execution providers in this table are still planned.
+model management and additional GPU execution providers in this table are still planned.
+The tool and Performance preferences share `aiBackend` (auto/cpu/directml) and `aiDeviceId`.
+Automatic selects the DXGI adapter with the most dedicated video memory and reports CPU fallback;
+explicit GPU requests preserve errors. Session changes apply on the next preview. DirectML uses
+sequential execution with memory patterns, graph fusion and its memory arena disabled: the pinned
+FP32 model's fused graph failed allocation on an 8 GB RTX 3070 Ti, while the unfused path passed
+two local inference runs. The canvas backend is independent of inference.
 
 **Rules for every algorithm:**
 - **Signature:** a pure function `fn(input: &SurfaceView, params: &P, region: Rect, cancel: &CancelToken) -> Surface`.

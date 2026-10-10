@@ -2421,3 +2421,16 @@ cameraRaw	Roughness	Неровность
 	Brush radius	Радиус кисти
 	Paint on the preview to keep or remove areas.	Рисуйте на предпросмотре, чтобы сохранить или удалить области.
 	Apply mask	Применить маску
+
+# AI inference device
+	AI processing	Обработка ИИ
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	Автоматический режим пробует ускорение GPU и при необходимости использует CPU.
+	AI GPU settings	Настройки GPU для ИИ
+	GPU adapter index	Индекс адаптера GPU
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 использует GPU по умолчанию. Для второго GPU выберите соответствующий индекс адаптера DXGI.
+	Applies to the next preview. No restart required.	Применяется к следующему предпросмотру. Перезапуск не требуется.
+	Inference device	Устройство вывода ИИ
+	GPU unavailable; this preview used CPU.	GPU недоступен; этот предпросмотр выполнен на CPU.
+
+	CPU	CPU

@@ -9,12 +9,20 @@ workspace = true
 
 [features]
 default = []
-onnx = ["dep:ort", "dep:ureq", "dep:sha2"]
+onnx = ["dep:ort", "dep:ureq", "dep:sha2", "dep:winsafe"]
 
 [dependencies]
 thiserror.workspace = true
+serde.workspace = true
 
 [target.'cfg(all(not(target_arch = "wasm32"), any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
 ort = { version = "=2.0.0-rc.10", optional = true, default-features = false, features = ["std", "download-binaries", "copy-dylibs"] }
 ureq = { version = "2.12", optional = true }
 sha2 = { version = "0.10", optional = true }
+
+[target.'cfg(all(target_os = "windows", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
+# The pinned Windows runtime already includes DirectML; enable its safe registration API.
+ort = { version = "=2.0.0-rc.10", optional = true, default-features = false, features = ["directml"] }
+
+# Safe DXGI enumeration; use the same adapter indices as DirectML.
+winsafe = { version = "=0.0.29", optional = true, default-features = false, features = ["dxgi"] }

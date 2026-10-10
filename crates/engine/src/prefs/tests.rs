@@ -272,3 +272,27 @@ fn gpu_backend_round_trips_and_validates() {
         assert_eq!(GpuBackend::parse(n).map(GpuBackend::name), Some(*n));
     }
 }
+
+#[test]
+fn ai_provider_preferences_persist_validate_and_load_older_files() {
+    let mut s = Session::new();
+    assert_eq!(s.prefs().performance.ai_backend, AiBackend::Auto);
+    assert_eq!(s.prefs().performance.ai_device_id, 0);
+    s.execute("prefs.set", json!({"values":{"performance.aiBackend":"directml","performance.aiDeviceId":1}})).unwrap();
+    for bad in [json!("cuda"), json!(1), Value::Null] {
+        assert!(s.execute("prefs.set", json!({"path":"performance.aiBackend","value":bad})).is_err());
+    }
+    for bad in [json!(-1), json!(32), json!(1.5), json!("1"), json!(u64::MAX)] {
+        assert!(s.execute("prefs.set", json!({"path":"performance.aiDeviceId","value":bad})).is_err());
+    }
+    assert_eq!(s.prefs().performance.ai_backend, AiBackend::DirectMl);
+    assert_eq!(s.prefs().performance.ai_device_id, 1);
+    let mut restored = Session::new();
+    restored.load_prefs_json(&s.prefs_to_json()).unwrap();
+    assert_eq!(restored.prefs().performance.ai_backend, AiBackend::DirectMl);
+    assert_eq!(restored.prefs().performance.ai_device_id, 1);
+    restored.load_prefs_json(r#"{"performance":{"historyStates":50}}"#).unwrap();
+    assert_eq!(restored.prefs().performance.ai_backend, AiBackend::Auto);
+    assert_eq!(restored.prefs().performance.ai_device_id, 0);
+    assert_eq!(choices("performance.aiBackend"), Some(AiBackend::NAMES));
+}

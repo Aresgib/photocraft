@@ -7,9 +7,13 @@ history. No Python process, cloud inference or user-image upload is involved.
 
 The `onnx` feature uses `ort` 2.0.0-rc.10 / ONNX Runtime 1.22 on native x86_64 and aarch64.
 The Windows prebuilt also requires `DirectML.dll` beside the executable (Cargo copies it;
-the Windows packaging scripts include it and the notices in `licenses/`). Inference selects
-CPU, and ONNX telemetry is explicitly disabled.
-The first implementation uses CPU; rendering on wgpu does not select an inference GPU.
+the Windows packaging scripts include it and the notices in `licenses/`). Inference supports
+Automatic, CPU and Windows DirectML, with ONNX telemetry explicitly disabled.
+Automatic prefers the adapter with the most dedicated video memory and reports CPU fallback
+when GPU initialization or execution fails. An explicit GPU request returns errors instead.
+`infer_with_options` returns the actual provider, DXGI adapter index and optional fallback reason.
+One cached session is rebuilt when the policy or adapter changes. Rendering on wgpu does not
+select the inference device. Other native platforms use CPU; CUDA is not bundled.
 WebAssembly and other architectures return an actionable unsupported error and continue to
 provide the existing selection/background tools. Engine builds enable it through the
 `ai-background` feature (enabled by default; `--no-default-features` omits it).
@@ -30,7 +34,7 @@ results never become a document edit. Loading the model finishes before releasin
 
 CPU inference is memory intensive and is experimental. Test your images, especially fine hair,
 horns, translucent objects and low-contrast edges; use the preview's Keep/Remove brush when
-the model misses a region. GPU providers, model management in Preferences, prompt-guided
+the model misses a region. Additional GPU providers, model management in Preferences, prompt-guided
 segmentation and full-resolution edge matting remain future work.
 
 Tests: `cargo test -p photocraft-ml --features onnx`; offline acceptance:

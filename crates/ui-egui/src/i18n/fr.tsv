@@ -2578,3 +2578,16 @@ cameraRaw	Blending	Fusion
 	Brush radius	Rayon du pinceau
 	Paint on the preview to keep or remove areas.	Peignez sur l’aperçu pour conserver ou supprimer des zones.
 	Apply mask	Appliquer le masque
+
+# AI inference device
+	AI processing	Traitement IA
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	Le mode automatique essaie le GPU et utilise le CPU si nécessaire.
+	AI GPU settings	Réglages GPU pour l’IA
+	GPU adapter index	Indice de l’adaptateur GPU
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 utilise le GPU par défaut. Pour un second GPU, choisissez son indice d’adaptateur DXGI.
+	Applies to the next preview. No restart required.	S’applique au prochain aperçu. Aucun redémarrage nécessaire.
+	Inference device	Périphérique d’inférence
+	GPU unavailable; this preview used CPU.	GPU indisponible ; cet aperçu a utilisé le CPU.
+
+	CPU	CPU

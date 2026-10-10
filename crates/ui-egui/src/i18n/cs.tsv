@@ -2147,3 +2147,16 @@ cameraRaw	Color	Barvy
 	Brush radius	Poloměr štětce
 	Paint on the preview to keep or remove areas.	Malováním v náhledu zachováte nebo odstraníte oblasti.
 	Apply mask	Použít masku
+
+# AI inference device
+	AI processing	Zpracování AI
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	Automatický režim zkusí akceleraci GPU a v případě potřeby použije CPU.
+	AI GPU settings	Nastavení GPU pro AI
+	GPU adapter index	Index adaptéru GPU
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 používá výchozí GPU. Pro druhou GPU vyberte odpovídající index adaptéru DXGI.
+	Applies to the next preview. No restart required.	Platí pro další náhled. Restart není nutný.
+	Inference device	Zařízení pro inferenci
+	GPU unavailable; this preview used CPU.	GPU není dostupná; tento náhled použil CPU.
+
+	CPU	CPU

@@ -2,7 +2,7 @@
 
 Choose the **AI Background Removal Tool** (sparkles icon directly below Move in the toolbar).
 Select an unlocked pixel layer, enable the one-time BiRefNet download if needed, and choose
-**Generate preview**. Inference runs locally on the CPU as a cancellable background job.
+**Generate preview**. Inference runs locally as a cancellable background job.
 The existing Select Subject and Remove Background commands keep their previous behavior.
 
 The preview does not change the document. Switch between Cutout, Overlay and Original, then
@@ -15,8 +15,28 @@ this tool's running job. An edited image requires a new preview before applying.
 The first model download is approximately 224 MB. Nothing about the open image is sent to a
 server. The weight export is pinned and SHA-256 verified; see `crates/ml/README.md` for cache,
 licensing, build feature and supported architecture details. The browser retains the existing
-tools and reports that this native ONNX tool is unavailable. CPU-only inference is the initial
-backend; CUDA/DirectML acceleration is not implemented here.
+tools and reports that this native ONNX tool is unavailable.
+
+## AI processing device
+
+The tool window and **Edit → Preferences → Performance → AI processing** share a saved setting:
+
+- **Automatic (recommended)**: on Windows, try DirectML on the DXGI adapter with the most dedicated
+  video memory; fall back to CPU if GPU session creation or execution fails. The preview reports
+  the device used and the fallback reason. On other native platforms, use CPU.
+- **CPU**: always run local inference on the CPU.
+- **GPU (DirectML)**: on Windows, use the chosen adapter. Expand **AI GPU settings** to select
+  its name/index. An unavailable GPU returns an error; it does not silently select CPU.
+
+Changes apply to the next generated preview, without a restart. Existing previews retain their
+mask and device information until regenerated. The canvas renderer is configured independently.
+DirectML can execute unsupported model operators on CPU; selecting GPU does not guarantee that
+every operator runs there. CUDA and other native GPU providers are not included in this build.
+
+Agents can use `prefs.set {path:"performance.aiBackend", value:"auto|cpu|directml"}` and
+`prefs.set {path:"performance.aiDeviceId", value:0}`. `layer.aiBackground.preview` also accepts
+`backend` and `deviceId` overrides without changing the saved settings. `layer.aiBackground.info`
+reports settings, DXGI adapter names/indices, and the preview's actual provider and fallback reason.
 
 ## Build and test on another computer
 

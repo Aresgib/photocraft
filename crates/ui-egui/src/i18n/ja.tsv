@@ -2130,3 +2130,16 @@ cameraRaw	Color	カラー
 	Brush radius	ブラシ半径
 	Paint on the preview to keep or remove areas.	プレビューに描画して領域を保持または除去します。
 	Apply mask	マスクを適用
+
+# AI inference device
+	AI processing	AI 処理
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	自動では GPU アクセラレーションを試し、必要に応じて CPU に切り替えます。
+	AI GPU settings	AI の GPU 設定
+	GPU adapter index	GPU アダプター番号
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 は既定の GPU です。別の GPU には対応する DXGI アダプター番号を指定します。
+	Applies to the next preview. No restart required.	次のプレビューに適用されます。再起動は不要です。
+	Inference device	推論デバイス
+	GPU unavailable; this preview used CPU.	GPU を使用できないため、このプレビューは CPU で処理されました。
+
+	CPU	CPU

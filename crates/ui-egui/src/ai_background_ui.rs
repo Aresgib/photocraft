@@ -6,6 +6,61 @@ use serde_json::json;
 
 use crate::{PhotocraftApp, Tool, theme::Tokens, widgets};
 
+/// Shared by the tool and Preferences; both save through the engine's prefs.set command.
+pub(crate) fn settings_rows(ui: &mut egui::Ui, values: &mut serde_json::Map<String, serde_json::Value>) {
+    let mut backend = values.get("aiBackend").and_then(serde_json::Value::as_str).unwrap_or("auto").to_string();
+    let mut device = values.get("aiDeviceId").and_then(serde_json::Value::as_u64).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
+    let mut choices = vec![("auto".to_string(), tl!("Automatic (recommended)")), ("cpu".to_string(), tl!("CPU"))];
+    if ai_background_cmds::gpu_supported() {
+        choices.push(("directml".to_string(), tl!("GPU (DirectML)")));
+    }
+    ui.horizontal(|ui| {
+        ui.label(tl!("AI processing"));
+        widgets::dropdown(ui, "ai-inference-backend", &mut backend, &choices, 210.0);
+    });
+    ui.label(tl!("Automatic tries GPU acceleration and falls back to CPU if needed."));
+    if backend == "directml" && ai_background_cmds::gpu_supported() {
+        ui.collapsing(tl!("AI GPU settings"), |ui| {
+            ui.horizontal(|ui| {
+                ui.label(tl!("GPU adapter index"));
+                let adapters = ai_background_cmds::gpu_adapters();
+                if adapters.is_empty() {
+                    let mut index = device as f32;
+                    widgets::value_field(ui, &mut index, 0.0..=31.0, "", 70.0);
+                    if index.is_finite() {
+                        device = index.round().clamp(0.0, 31.0) as u32;
+                    }
+                } else {
+                    let labels: Vec<String> = adapters.iter().map(|a| format!("{}: {}", a.device_id, a.name)).collect();
+                    let choices: Vec<(u32, &str)> = adapters.iter().zip(&labels).map(|(a, label)| (a.device_id, label.as_str())).collect();
+                    widgets::dropdown(ui, "ai-gpu-adapter", &mut device, &choices, 230.0);
+                }
+            });
+            ui.label(tl!("0 uses the default GPU. Choose another DXGI adapter index for a second GPU."));
+        });
+    }
+    ui.label(tl!("Applies to the next preview. No restart required."));
+    values.insert("aiBackend".into(), json!(backend));
+    values.insert("aiDeviceId".into(), json!(device));
+}
+
+fn tool_settings(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
+    let before = json!({"aiBackend":app.session.prefs().performance.ai_backend.name(),"aiDeviceId":app.session.prefs().performance.ai_device_id});
+    if let Some(mut values) = before.as_object().cloned() {
+        ui.add_enabled_ui(!app.session.has_jobs(), |ui| settings_rows(ui, &mut values));
+        if serde_json::Value::Object(values.clone()) != before {
+            run(
+                app,
+                "prefs.set",
+                json!({"values":{
+                    "performance.aiBackend":values.get("aiBackend"),
+                    "performance.aiDeviceId":values.get("aiDeviceId")
+                }}),
+            );
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase", deny_unknown_fields)]
 pub struct Settings {
@@ -99,10 +154,16 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
         return;
     }
     let mut open = true;
-    egui::Window::new(tl!("AI Background Removal")).id(egui::Id::new("ai-background-tool")).open(&mut open).resizable(false).default_width(440.0).show(
-        ctx,
-        |ui| {
+    egui::Window::new(tl!("AI Background Removal"))
+        .id(egui::Id::new("ai-background-tool"))
+        .open(&mut open)
+        .resizable(false)
+        .default_width(440.0)
+        .vscroll(true)
+        .max_height((ctx.content_rect().height() - 40.0).max(100.0))
+        .show(ctx, |ui| {
             ui.label(tl!("BiRefNet runs locally. Your image stays on this computer."));
+            tool_settings(app, ui);
             widgets::checkbox(ui, &mut app.ui.ai_background.download, tl!("Download model once (about 224 MB)"));
             let ready = ai_background_cmds::current_preview(&app.session).is_ok();
             let busy = app.session.has_jobs();
@@ -114,6 +175,23 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
             if !app.session.is_enabled(PREPARE) {
                 let reason = photocraft_engine::commands::find(PREPARE).and_then(|c| (c.enabled)(&app.session).err()).unwrap_or_default();
                 ui.label(reason);
+            }
+            if let Some(preview) = app.session.ai_background.as_ref() {
+                ui.horizontal(|ui| {
+                    ui.label(tl!("Inference device"));
+                    ui.label(tl!(preview.provider.label()));
+                    if let Some(id) = preview.device_id
+                        && let Some(adapter) = ai_background_cmds::gpu_adapters().iter().find(|a| a.device_id == id)
+                    {
+                        ui.label(&adapter.name);
+                    }
+                });
+                if let Some(reason) = &preview.fallback_reason {
+                    ui.label(tl!("GPU unavailable; this preview used CPU."));
+                    ui.collapsing(tl!("Details"), |ui| {
+                        ui.label(reason);
+                    });
+                }
             }
             if !ready {
                 if app.session.ai_background.is_some() {
@@ -178,8 +256,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                     }
                 });
             });
-        },
-    );
+        });
     if !open {
         // Closing during inference cancels that tool's job as well as discarding the preview.
         for job in app.session.jobs().into_iter().filter(|j| j.command == PREPARE && j.state == "running") {
@@ -188,5 +265,30 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
         run(app, CANCEL, json!({}));
         app.ai_background_texture = None;
         app.ui.tool = Tool::Move;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use egui_kittest::kittest::Queryable;
+
+    #[test]
+    fn device_menu_changes_engine_preferences_and_restores_the_saved_choice() {
+        let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        let mut h = egui_kittest::Harness::new_ui_state(|ui, app| tool_settings(app, ui), app);
+        h.run();
+        h.get_by_role(egui::accesskit::Role::ComboBox).click();
+        h.run();
+        h.get_by_label("CPU").click();
+        h.run();
+        assert_eq!(h.state().session.prefs().performance.ai_backend, photocraft_engine::prefs::AiBackend::Cpu);
+        let saved = h.state().session.prefs_to_json();
+        let mut session = photocraft_engine::Session::new();
+        session.load_prefs_json(&saved).unwrap();
+        let app = PhotocraftApp::new(session, Default::default());
+        let mut restored = egui_kittest::Harness::new_ui_state(|ui, app| tool_settings(app, ui), app);
+        restored.run();
+        assert_eq!(restored.get_by_role(egui::accesskit::Role::ComboBox).value().as_deref(), Some("CPU"));
     }
 }

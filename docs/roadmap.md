@@ -47,6 +47,14 @@ almost entirely missing or partial.
 of display and canvas zoom (#532). The current preference audit drops from 59 to 58 unread
 settings out of 135; see the regenerated scorecard.
 
+2026-10-10 (AI background branch): local BiRefNet now supports Windows DirectML and saved
+Automatic/CPU/GPU settings, with named adapter selection and reported CPU fallback. A synthetic
+1024×1024 inference on an RTX 3070 Ti passed twice using DirectML (cold 25.787 s, warm 7.494 s)
+and then switched to CPU without restarting. These timings were collected during concurrent
+builds, not a performance baseline. The fused FP32 graph exhausted GPU allocation resources;
+the tested configuration disables DirectML graph fusion and the memory arena. Preference audit:
+57 unread settings out of 137; the two new inference preferences are both read.
+
 **Bottom line.** Two days after 0.2.0 we had merged ~96 PRs and closed ~48 issues, but **real
 Photoshop parity is still well below 50%**. The biggest gaps are AI, missing tools, professional
 workflow depth and the plug-in ecosystem. Most fixes since 0.2.0 have passed our tests but have

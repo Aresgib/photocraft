@@ -2220,3 +2220,16 @@ cameraRaw	Amount	Quantità
 	Brush radius	Raggio del pennello
 	Paint on the preview to keep or remove areas.	Dipingi sull’anteprima per mantenere o rimuovere aree.
 	Apply mask	Applica maschera
+
+# AI inference device
+	AI processing	Elaborazione IA
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	La modalità automatica prova la GPU e usa la CPU se necessario.
+	AI GPU settings	Impostazioni GPU per IA
+	GPU adapter index	Indice adattatore GPU
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 usa la GPU predefinita. Per una seconda GPU scegli il relativo indice dell’adattatore DXGI.
+	Applies to the next preview. No restart required.	Si applica alla prossima anteprima. Non occorre riavviare.
+	Inference device	Dispositivo di inferenza
+	GPU unavailable; this preview used CPU.	GPU non disponibile; questa anteprima ha usato la CPU.
+
+	CPU	CPU

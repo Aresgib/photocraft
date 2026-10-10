@@ -25,6 +25,8 @@ use serde_json::{Map, Value, json};
 use crate::commands::CommandSpec;
 use crate::{EngineError, Result, Session};
 
+pub use photocraft_ml::Backend as AiBackend;
+
 /// A string-valued choice enum with its JSON names (used to validate `prefs.set` and to fill
 /// dropdowns in the Preferences dialog).
 macro_rules! choice {
@@ -398,6 +400,10 @@ pub struct Performance {
     pub rendering_mode: Option<RenderingMode>,
     /// Graphics backend (applies at next launch; see [`GpuBackend`]).
     pub gpu_backend: GpuBackend,
+    /// Local AI inference provider; changes apply to the next preview without restarting.
+    pub ai_backend: AiBackend,
+    /// DirectML's DXGI adapter index (0 is the default GPU).
+    pub ai_device_id: u32,
     /// Memory budget of the layer-effect cache, in MB.
     pub effect_cache_mb: u32,
     pub legacy_compositing: bool,
@@ -426,6 +432,8 @@ impl Default for Performance {
             use_gpu: true,
             rendering_mode: None,
             gpu_backend: GpuBackend::Auto,
+            ai_backend: AiBackend::Auto,
+            ai_device_id: 0,
             effect_cache_mb: 768,
             legacy_compositing: false,
         }
@@ -896,6 +904,7 @@ pub fn choices(path: &str) -> Option<&'static [&'static str]> {
         "rawDefaults.sharpenFor" => RawSharpen::NAMES,
         "performance.gpuBackend" => GpuBackend::NAMES,
         "performance.renderingMode" => RenderingMode::NAMES,
+        "performance.aiBackend" => AiBackend::NAMES,
         _ => return None,
     })
 }
@@ -910,6 +919,7 @@ pub fn range(path: &str) -> Option<(f64, f64)> {
         "performance.historyStates" => (1.0, 1000.0),
         "performance.cacheLevels" => (1.0, 8.0),
         "performance.cacheTileSize" => (256.0, 16384.0),
+        "performance.aiDeviceId" => (0.0, 31.0),
         "performance.effectCacheMb" => (16.0, 65536.0),
         "transparencyAndGamut.gamutWarningOpacity" => (1.0, 100.0),
         "unitsAndRulers.columnWidth" | "unitsAndRulers.gutter" => (0.0, 10_000.0),

@@ -5,6 +5,108 @@
 pub const MODEL_SIDE: usize = 1024;
 pub const MAX_IMAGE_PIXELS: usize = 64_000_000;
 
+/// Inference policy, independent of the canvas renderer. Explicit GPU requests never silently
+/// select CPU; Auto may fall back and reports why in the result.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Backend {
+    #[default]
+    Auto,
+    Cpu,
+    DirectMl,
+}
+
+impl Backend {
+    pub const NAMES: &'static [&'static str] = &["auto", "cpu", "directml"];
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Cpu => "cpu",
+            Self::DirectMl => "directml",
+        }
+    }
+    pub fn parse(name: &str) -> Option<Self> {
+        match name {
+            "auto" => Some(Self::Auto),
+            "cpu" => Some(Self::Cpu),
+            "directml" => Some(Self::DirectMl),
+            _ => None,
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Auto => "Automatic (recommended)",
+            Self::Cpu => "CPU",
+            Self::DirectMl => "GPU (DirectML)",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct InferenceOptions {
+    pub backend: Backend,
+    /// DXGI adapter index, not a wgpu or Task Manager device index.
+    pub device_id: u32,
+}
+impl InferenceOptions {
+    pub fn validate(self) -> Result<()> {
+        if self.device_id > 31 {
+            return Err(Error::Invalid("AI GPU adapter index must be within 0..31".into()));
+        }
+        if self.backend == Backend::DirectMl && !directml_supported() {
+            return Err(Error::Runtime("DirectML AI inference requires a native Windows x64 or ARM64 build; choose Automatic or CPU".into()));
+        }
+        Ok(())
+    }
+}
+
+pub fn directml_supported() -> bool {
+    supported() && cfg!(target_os = "windows")
+}
+
+pub struct InferenceOutput {
+    pub matte: Matte,
+    pub provider: Backend,
+    pub fallback_reason: Option<String>,
+    pub device_id: Option<u32>,
+}
+
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GpuAdapter {
+    pub device_id: u32,
+    pub name: String,
+    pub dedicated_memory_bytes: usize,
+}
+
+/// Cached, bounded DXGI enumeration, using the adapter indices that DirectML accepts.
+pub fn gpu_adapters() -> &'static [GpuAdapter] {
+    #[cfg(all(feature = "onnx", target_os = "windows", any(target_arch = "x86_64", target_arch = "aarch64")))]
+    {
+        use winsafe::prelude::*;
+        static ADAPTERS: std::sync::OnceLock<Vec<GpuAdapter>> = std::sync::OnceLock::new();
+        ADAPTERS.get_or_init(|| {
+            let Ok(factory) = winsafe::CreateDXGIFactory() else { return Vec::new() };
+            factory
+                .EnumAdapters()
+                .take(32)
+                .enumerate()
+                .filter_map(|(index, adapter)| {
+                    let desc = adapter.ok()?.GetDesc().ok()?;
+                    if desc.VendorId == 0x1414 && desc.DeviceId == 0x8c {
+                        return None; // Microsoft's software adapter.
+                    }
+                    Some(GpuAdapter { device_id: u32::try_from(index).ok()?, name: desc.Description(), dedicated_memory_bytes: desc.DedicatedVideoMemory })
+                })
+                .collect()
+        })
+    }
+    #[cfg(not(all(feature = "onnx", target_os = "windows", any(target_arch = "x86_64", target_arch = "aarch64"))))]
+    {
+        &[]
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
@@ -107,13 +209,18 @@ pub fn supported() -> bool {
 }
 
 pub fn infer(image: &ModelInput, download: bool, progress: &dyn Progress) -> Result<Matte> {
+    infer_with_options(image, download, InferenceOptions::default(), progress).map(|out| out.matte)
+}
+
+pub fn infer_with_options(image: &ModelInput, download: bool, options: InferenceOptions, progress: &dyn Progress) -> Result<InferenceOutput> {
+    options.validate()?;
     #[cfg(all(feature = "onnx", not(target_arch = "wasm32"), any(target_arch = "x86_64", target_arch = "aarch64")))]
     {
-        OnnxBackend { download }.matte_subject(image, progress)
+        native::infer(image, download, options, progress)
     }
     #[cfg(not(all(feature = "onnx", not(target_arch = "wasm32"), any(target_arch = "x86_64", target_arch = "aarch64"))))]
     {
-        let _ = (image, download, progress);
+        let _ = (image, download, options, progress);
         Err(Error::Unsupported)
     }
 }
@@ -121,6 +228,19 @@ pub fn infer(image: &ModelInput, download: bool, progress: &dyn Progress) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn provider_options_reject_bad_device_indices_and_round_trip_names() {
+        assert!(InferenceOptions { device_id: u32::MAX, ..Default::default() }.validate().is_err());
+        assert!(InferenceOptions { device_id: 32, ..Default::default() }.validate().is_err());
+        assert!(InferenceOptions::default().validate().is_ok());
+        for name in Backend::NAMES {
+            assert_eq!(Backend::parse(name).unwrap().name(), *name);
+        }
+        assert_eq!(Backend::parse("cuda"), None);
+        if !directml_supported() {
+            assert!(InferenceOptions { backend: Backend::DirectMl, device_id: 0 }.validate().is_err());
+        }
+    }
     #[test]
     fn validates_shapes_and_nonfinite_coverage() {
         assert!(Matte::new(usize::MAX, 2, vec![]).is_err());

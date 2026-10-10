@@ -2124,3 +2124,16 @@ cameraRaw	Blending	混合
 	Brush radius	筆刷半徑
 	Paint on the preview to keep or remove areas.	在預覽上塗畫以保留或移除區域。
 	Apply mask	套用遮色片
+
+# AI inference device
+	AI processing	AI 處理
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	自動模式先嘗試 GPU 加速，必要時使用 CPU。
+	AI GPU settings	AI GPU 設定
+	GPU adapter index	GPU 配接器索引
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 使用預設 GPU。使用第二張 GPU 時，請選擇對應的 DXGI 配接器索引。
+	Applies to the next preview. No restart required.	套用至下次預覽，無需重新啟動。
+	Inference device	推論裝置
+	GPU unavailable; this preview used CPU.	GPU 無法使用；此預覽使用了 CPU。
+
+	CPU	CPU

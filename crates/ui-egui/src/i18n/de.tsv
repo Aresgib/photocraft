@@ -2186,3 +2186,16 @@
 	Brush radius	Pinselradius
 	Paint on the preview to keep or remove areas.	Malen Sie in der Vorschau, um Bereiche zu behalten oder zu entfernen.
 	Apply mask	Maske anwenden
+
+# AI inference device
+	AI processing	KI-Verarbeitung
+	GPU (DirectML)	GPU (DirectML)
+	Automatic tries GPU acceleration and falls back to CPU if needed.	Automatisch versucht GPU-Beschleunigung und verwendet bei Bedarf die CPU.
+	AI GPU settings	GPU-Einstellungen für KI
+	GPU adapter index	GPU-Adapterindex
+	0 uses the default GPU. Choose another DXGI adapter index for a second GPU.	0 verwendet die Standard-GPU. Für eine zweite GPU den entsprechenden DXGI-Adapterindex wählen.
+	Applies to the next preview. No restart required.	Gilt für die nächste Vorschau. Kein Neustart erforderlich.
+	Inference device	Inferenzgerät
+	GPU unavailable; this preview used CPU.	GPU nicht verfügbar; diese Vorschau verwendete die CPU.
+
+	CPU	CPU
