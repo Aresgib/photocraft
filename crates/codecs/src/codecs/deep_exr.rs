@@ -227,6 +227,27 @@ pub(crate) fn decode_deep(meta: &MetaData, bytes: &[u8], limits: &Limits) -> Res
     let npixels = w.checked_mul(h).ok_or_else(|| err("the data window is too large"))?;
     limits.check_bytes(w as u32, h as u32, (header.channels.list.len().max(1) as u64) * 4)?;
 
+    // The display window is the full stage the renderer composed onto (a render pass's data
+    // window is often its crop). Open on the stage when it plausibly holds the data region:
+    // sane size for the limits, and the data region inside it. Otherwise fall back to the
+    // data window alone, as before.
+    let display = header.shared_attributes.display_window;
+    let display_size = (display.size.0.max(1) as u32, display.size.1.max(1) as u32);
+    let (stage, origin) = match display_size {
+        (sw, sh)
+            if sw <= 1 << 15
+                && sh <= 1 << 15
+                && limits.check_bytes(sw, sh, 4).is_ok()
+                && dw.position.0 >= display.position.0
+                && dw.position.1 >= display.position.1
+                && dw.position.0.saturating_add(w as i32) <= display.position.0.saturating_add(sw as i32)
+                && dw.position.1.saturating_add(h as i32) <= display.position.1.saturating_add(sh as i32) =>
+        {
+            (Some((sw, sh)), (dw.position.0 - display.position.0, dw.position.1 - display.position.1))
+        }
+        _ => (None, (0, 0)),
+    };
+
     let exr_types: Vec<ExrSample> = header.channels.list.iter().map(|c| c.sample_type).collect();
     let bytes_per_sample: usize = exr_types.iter().map(|t| sample_bytes(*t)).sum();
     let multipart = meta.requirements.has_multiple_layers;
@@ -440,7 +461,7 @@ pub(crate) fn decode_deep(meta: &MetaData, bytes: &[u8], limits: &Limits) -> Res
         }
     }
 
-    Ok(DeepImage { width: w as u32, height: h as u32, channels, counts: deep_counts })
+    Ok(DeepImage { width: w as u32, height: h as u32, stage, origin, channels, counts: deep_counts })
 }
 
 /// Where the headers end and the offset tables begin. [`MetaData::read_from_buffered`]
@@ -550,19 +571,43 @@ pub(crate) fn flatten(deep: &DeepImage) -> Result<Image, CodecError> {
         // Un-premultiply into straight alpha (the deep colours are premultiplied).
         let straight = |c: f32| if a_clamped > 1e-6 { c / a_clamped } else { 0.0 };
         let base = p * nc;
-        for (k, v) in [straight(cacc[0]), straight(cacc[1]), straight(cacc[2]), a_clamped].into_iter().enumerate() {
+        // Written by layout: RGB(A), gray(+A) — a fixed RGBA quadruple would put a luminance
+        // copy into a GrayA image's alpha slot.
+        // A fixed array plus a length: this runs once per pixel, so no allocation.
+        let (vals, len) = match (rgb, nc) {
+            (true, 4) => ([straight(cacc[0]), straight(cacc[1]), straight(cacc[2]), a_clamped], 4),
+            (true, _) => ([straight(cacc[0]), straight(cacc[1]), straight(cacc[2]), 0.0], 3),
+            (false, 2) => ([straight(cacc[0]), a_clamped, 0.0, 0.0], 2),
+            (false, _) => ([straight(cacc[0]), 0.0, 0.0, 0.0], 1),
+        };
+        for (k, v) in vals.into_iter().take(len).enumerate() {
             if let Some(slot) = out.get_mut(base + k) {
                 *slot = v;
             }
         }
-        if !rgb {
-            // Luminance: keep only channel 0, and the alpha behind it.
-            if let Some(slot) = out.get_mut(base) {
-                *slot = straight(cacc[0]);
-            }
-        }
     }
-    let mut img = Image::from_f32(deep.width, deep.height, layout, &out)?;
+    // Open on the full display-window stage when the file declares one: the renderer's data
+    // window is its crop, and the composition lives on the whole stage. The composed region
+    // pads to the stage at its offset, transparent elsewhere (limits validated the size).
+    let mut img = match deep.stage {
+        Some((sw, sh)) => {
+            let mut padded = vec![0f32; sw as usize * sh as usize * nc];
+            let row_len = deep.width as usize * nc;
+            let dx = deep.origin.0.max(0) as usize;
+            for row in 0..deep.height as usize {
+                let src = row * row_len;
+                let dst = (row + deep.origin.1.max(0) as usize) * sw as usize + dx;
+                if let (Some(d), Some(r)) = (padded.get_mut(dst * nc..dst * nc + row_len), out.get(src..src + row_len)) {
+                    d.copy_from_slice(r);
+                }
+            }
+            Image::from_f32(sw, sh, layout, &padded)?
+        }
+        None => Image::from_f32(deep.width, deep.height, layout, &out)?,
+    };
+    if let Some((sw, sh)) = deep.stage {
+        img.warnings.push(DecodeWarning::DisplayWindowStage { stage: (sw, sh), origin: deep.origin });
+    }
     img.warnings.push(DecodeWarning::DeepFlattened { format: F, max_samples_per_pixel: max_samples });
     Ok(img)
 }

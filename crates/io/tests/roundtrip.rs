@@ -115,6 +115,7 @@ fn text_shape_smart_raw_blocks_survive() {
     let mut smart = Layer::new(
         "Smart",
         LayerContent::Smart(SmartObject {
+            contents_id: SmartContentsId::fresh(),
             source: SmartSource::Linked { path: String::new() },
             transform: photocraft_geom::Affine::IDENTITY,
             smart_filters: vec![],
@@ -161,6 +162,8 @@ fn raster_layer_blocks_preserved() {
     let blocks =
         vec![(*b"vmsk", std::sync::Arc::new(vec![0u8; 12])), (*b"clbl", std::sync::Arc::new(vec![0u8, 0, 0, 0])), (*b"Zzzz", std::sync::Arc::new(vec![1u8]))];
     d.layers[1].psd_blocks = blocks.clone();
+    // `clbl` is written from the field (in place), so the field agrees with the preserved block.
+    d.layers[1].advanced = photocraft_doc::AdvancedBlending { blend_clipped: false, ..Default::default() };
     d.layers[1].vector_mask = photocraft_io::vector_map::vector_mask_from_block(&[0; 12], d.size.width, d.size.height);
     let back = roundtrip(&d);
     // An odd-length layer block comes back with its pad byte inside the length (as Photoshop
@@ -302,7 +305,10 @@ fn psd_raw_resources_and_global_blocks_preserved() {
     d.metadata.psd_global_blocks.push((*b"8BIM", *b"Patt", std::sync::Arc::new(vec![7; 6])));
     d.metadata.psd_global_blocks.push((*b"8B64", *b"lnk2", std::sync::Arc::new(vec![1, 2])));
     let back = roundtrip(&d);
-    assert_eq!(back.metadata, d.metadata);
+    // A PSD holds no `8B64` blocks (Photoshop refuses the file): a kept PSB block is written as `8BIM`.
+    let mut expected = d.metadata.clone();
+    expected.psd_global_blocks[1].0 = *b"8BIM";
+    assert_eq!(back.metadata, expected);
 }
 
 #[test]
@@ -464,6 +470,56 @@ fn channel_restrictions_round_trip_as_brst() {
     assert!(f.layers().iter().find(|r| r.name() == "a").unwrap().block(b"brst").is_none());
 }
 
+/// Advanced Blending maps to `knko` / `infx` / `clbl` / `tsly` / `lmgm` / `vmgm` (one byte +
+/// three of padding), at every depth: non-default values are written, default layers gain no
+/// blocks, and imported blocks are rewritten in place.
+#[test]
+fn advanced_blending_round_trips_as_tagged_blocks() {
+    use photocraft_doc::{AdvancedBlending, Document, Knockout, Layer, Size};
+    for depth in SampleType::ALL {
+        let mut d = Document::new("a", Size::new(8, 8), ColorMode::Rgb, depth);
+        let mut a = Layer::raster("a", d.pixel_format());
+        a.surface_mut().unwrap().fill_rect(photocraft_geom::Rect::new(0, 0, 4, 4), &[1.0, 0.0, 0.0, 1.0]);
+        let adv = AdvancedBlending {
+            knockout: Knockout::Deep,
+            blend_interior: true,
+            blend_clipped: false,
+            transparency_shapes: false,
+            layer_mask_hides_effects: true,
+            vector_mask_hides_effects: true,
+        };
+        a.advanced = adv;
+        let mut g = Layer::group("g", vec![Layer::raster("c", d.pixel_format())]);
+        g.advanced.knockout = Knockout::Shallow;
+        g.fill_opacity = 128.0 / 255.0;
+        let b = Layer::raster("b", d.pixel_format());
+        d.layers = vec![a, b, g];
+        let f = document_to_psd(&d);
+        let rec = |name: &str| f.layers().iter().find(|r| r.name() == name).unwrap().clone();
+        let ra = rec("a");
+        for (k, v) in [(b"knko", 2u8), (b"infx", 1), (b"clbl", 0), (b"tsly", 0), (b"lmgm", 1), (b"vmgm", 1)] {
+            assert_eq!(ra.block(k).unwrap().data, vec![v, 0, 0, 0], "{depth:?} {}", String::from_utf8_lossy(k));
+        }
+        for k in [b"knko", b"infx", b"clbl", b"tsly", b"lmgm", b"vmgm"] {
+            assert!(rec("b").block(k).is_none(), "default layer gained {}", String::from_utf8_lossy(k));
+        }
+        assert_eq!(rec("g").block(b"knko").unwrap().data, vec![1, 0, 0, 0]);
+        let back = roundtrip(&d);
+        assert_eq!(back.layers[0].advanced, adv, "{depth:?}");
+        assert!(back.layers[1].advanced.is_default());
+        assert_eq!(back.layers[2].advanced.knockout, Knockout::Shallow);
+        assert_eq!(back.layers[2].fill_opacity, 128.0 / 255.0);
+        // Reset to the defaults: the imported blocks stay (in place) with default values.
+        let mut reset = back.clone();
+        reset.layers[0].advanced = AdvancedBlending::default();
+        let f = document_to_psd(&reset);
+        let ra = f.layers().iter().find(|r| r.name() == "a").unwrap();
+        assert_eq!(ra.block(b"knko").unwrap().data, vec![0, 0, 0, 0]);
+        assert_eq!(ra.block(b"clbl").unwrap().data, vec![1, 0, 0, 0]);
+        assert!(roundtrip(&reset).layers[0].advanced.is_default());
+    }
+}
+
 #[test]
 fn blend_if_round_trips_as_blending_ranges() {
     use photocraft_doc::{BlendIf, BlendRange, Document, Layer, Size};
@@ -496,4 +552,56 @@ fn blend_if_round_trips_as_blending_ranges() {
     assert_eq!(back.layers[0].blend_if, bi);
     assert!(back.layers[1].blend_if.is_default());
     assert_eq!(back.layers[2].blend_if.get(1)[0], BlendRange { black: [1, 2], white: [3, 4] });
+}
+
+#[test]
+fn psd_16bit_layers_with_compatibility_section_open_visible() {
+    use photocraft_doc::{Document, Layer, LayerContent, Size};
+    use photocraft_geom::Rect;
+    use photocraft_raster::Surface;
+
+    // A 16-bit document with multiple distinct user layers.
+    let mut doc = Document::new("Test16", Size::new(50, 50), ColorMode::Rgb, SampleType::U16);
+    let fmt = doc.pixel_format();
+
+    let bg_data = vec![255u8; 50 * 50 * 8];
+    let bg_surf = Surface::from_interleaved(fmt, Rect::new(0, 0, 50, 50), &bg_data);
+    let mut bg = Layer::new("Background", LayerContent::Raster(bg_surf));
+    bg.visible = true;
+    doc.layers.push(bg);
+
+    let fg_data = vec![128u8; 20 * 20 * 8];
+    let fg_surf = Surface::from_interleaved(fmt, Rect::new(10, 10, 30, 30), &fg_data);
+    let mut fg = Layer::new("Foreground", LayerContent::Raster(fg_surf));
+    fg.visible = true;
+    doc.layers.push(fg);
+
+    let exported = export(&doc, "test.psd", &ExportOptions::default()).expect("export");
+    let bytes = exported.bytes;
+
+    let cmd_len = u32::from_be_bytes(bytes[26..30].try_into().unwrap()) as usize;
+    let res_pos = 30 + cmd_len;
+    let res_len = u32::from_be_bytes(bytes[res_pos..res_pos + 4].try_into().unwrap()) as usize;
+    let lm_pos = res_pos + 4 + res_len;
+    let lm_len = u32::from_be_bytes(bytes[lm_pos..lm_pos + 4].try_into().unwrap()) as usize;
+    let li_pos = lm_pos + 4;
+
+    // Simulate Photoshop's 16-bit format: an empty/compatibility layer info section (count = 0)
+    // before the global Lr16 block (#4928).
+    let mut modified = bytes;
+    let new_lm_len = (lm_len + 4) as u32;
+    modified[lm_pos..lm_pos + 4].copy_from_slice(&new_lm_len.to_be_bytes());
+    modified[li_pos..li_pos + 4].copy_from_slice(&4u32.to_be_bytes());
+    modified.splice(li_pos + 4..li_pos + 4, [0u8, 0, 0, 0]);
+
+    let imported = import("test.psd", &modified).expect("import").document;
+
+    // Must import the 16-bit layers from Lr16 ("Background" and "Foreground").
+    assert_eq!(imported.layers.len(), 2);
+    assert_eq!(imported.layers[0].name, "Background");
+    assert_eq!(imported.layers[1].name, "Foreground");
+    assert!(imported.layers[0].visible);
+    assert!(imported.layers[1].visible);
+    assert!(imported.layers[0].surface().unwrap().tile_count() > 0);
+    assert!(imported.layers[1].surface().unwrap().tile_count() > 0);
 }
